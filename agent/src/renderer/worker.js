@@ -155,17 +155,21 @@ async function doStartSession(sessionId, config) {
   window.remoteops.notifySessionStarted(config.name);
 
   try {
-    const { sourceId, screenWidth, screenHeight } = await window.remoteops.getScreenSource();
+    const { sourceId } = await window.remoteops.getScreenSource();
 
+    // Pas de maxWidth/maxHeight ici : imposer une résolution exacte à la
+    // capture échoue en pratique sur un écran Retina/HiDPI (résolution
+    // physique différente de la résolution logique renvoyée par
+    // screen.getPrimaryDisplay()), avec l'erreur "Could not start video
+    // source". L'affichage est de toute façon redimensionné côté
+    // contrôleur (CSS sur <video>, voir controller/css/app.css), donc
+    // rien n'est perdu à laisser Chromium choisir la résolution native.
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
         mandatory: {
           chromeMediaSource: "desktop",
           chromeMediaSourceId: sourceId,
-          maxWidth: screenWidth,
-          maxHeight: screenHeight,
-          maxFrameRate: 20,
         },
       },
     });
