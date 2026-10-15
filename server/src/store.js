@@ -39,7 +39,13 @@ function save(db) {
   // de corrompre db.json si le processus est interrompu en cours d'écriture.
   writeQueue = writeQueue.then(() => {
     const tmp = DB_PATH + ".tmp";
-    fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
+    // mode 0o600 : ce fichier contient les jetons d'agent (équivalents à un
+    // accès de maintenance à distance permanent) et les empreintes de mot
+    // de passe — lisible/écrivable par le seul compte qui fait tourner le
+    // serveur. Sans effet réel sous Windows (le mode POSIX n'y est pas
+    // appliqué de la même façon) : protégez alors le dossier par les ACL
+    // habituelles de l'OS.
+    fs.writeFileSync(tmp, JSON.stringify(db, null, 2), { mode: 0o600 });
     fs.renameSync(tmp, DB_PATH);
   });
   return writeQueue;
@@ -101,9 +107,13 @@ module.exports = {
     if (entry.used) return { error: "code_deja_utilise" };
     if (Date.now() > entry.expiresAt) return { error: "code_expire" };
     entry.used = true;
+    // Le nom déclaré vient de l'agent, pas encore authentifié à ce stade :
+    // on le traite comme toute entrée non fiable (type, longueur bornée),
+    // même si la seule chose qu'il pourrait abîmer est l'affichage.
+    const safeName = typeof declaredName === "string" ? declaredName.trim().slice(0, 80) : "";
     const device = {
       id: genId("dev"),
-      name: declaredName || entry.nameHint || "Poste sans nom",
+      name: safeName || entry.nameHint || "Poste sans nom",
       token: genToken(),
       createdAt: Date.now(),
       lastSeenAt: null,

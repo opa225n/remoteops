@@ -7,18 +7,20 @@
 // directement : il passe par le pont défini dans preload.js.
 "use strict";
 
-import { app, BrowserWindow, Tray, Menu, ipcMain, desktopCapturer, screen, nativeImage } from "electron";
+import { app, BrowserWindow, Tray, Menu, ipcMain, desktopCapturer, screen } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { mouse, keyboard, Button } from "@nut-tree-fork/nut-js";
 import { CODE_TO_NUT_KEY } from "./keymap.js";
+import { createDotIcon } from "./trayIcon.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(app.getPath("userData"), "device-config.json");
 
 let mainWindow = null;
 let tray = null;
+let bannerWindow = null;
 
 function readConfig() {
   try {
@@ -30,7 +32,11 @@ function readConfig() {
 
 function writeConfig(config) {
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+  // mode 0o600 : ce fichier contient le jeton permanent du poste (qui
+  // permet à quiconque le possède de se faire passer pour cet agent
+  // auprès du serveur) — à réserver au compte local qui fait tourner
+  // l'agent. Sans effet réel sous Windows.
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), { mode: 0o600 });
 }
 
 function createWindow() {
@@ -67,7 +73,10 @@ function createWindow() {
 }
 
 function createTray() {
-  const icon = nativeImage.createEmpty(); // remplacer par une vraie icône (voir README)
+  // Rond plein généré en mémoire : garantit une icône non vide (et donc
+  // retrouvable/cliquable) sans dépendre d'un fichier image fourni à part.
+  // Une illustration dédiée reste préférable avant diffusion (voir README).
+  const icon = createDotIcon(32, "#22c55e");
   tray = new Tray(icon);
   tray.setToolTip("RemoteOps — Agent de maintenance à distance");
   tray.setContextMenu(
@@ -86,6 +95,52 @@ function createTray() {
   tray.on("click", () => mainWindow && mainWindow.show());
 }
 
+// --- Bandeau de session : seule garantie, visible à l'écran, qu'un
+// contrôle à distance est en cours, même si la fenêtre de statut est
+// réduite dans la zone de notification. N'est pas fermable par la
+// personne devant le poste (sans barre de titre ni bouton) : il
+// disparaît uniquement quand la session se termine réellement, ce qui
+// est le but recherché (transparence, pas un contrôle qu'on peut
+// masquer soi-même pendant qu'elle a lieu). ---
+
+function createSessionBanner(deviceLabel) {
+  if (bannerWindow) return;
+  const { width } = screen.getPrimaryDisplay().workAreaSize;
+  bannerWindow = new BrowserWindow({
+    width,
+    height: 34,
+    x: 0,
+    y: 0,
+    frame: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    closable: false,
+    alwaysOnTop: true,
+    focusable: false,
+    skipTaskbar: true,
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+  // "screen-saver" : reste visible même par-dessus une application en
+  // plein écran, où un bandeau "normal" passerait sous la fenêtre active.
+  bannerWindow.setAlwaysOnTop(true, "screen-saver");
+  bannerWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  bannerWindow.loadFile(path.join(__dirname, "renderer", "banner.html"), {
+    query: deviceLabel ? { device: deviceLabel } : {},
+  });
+  bannerWindow.on("closed", () => {
+    bannerWindow = null;
+  });
+}
+
+function destroySessionBanner() {
+  if (bannerWindow) {
+    bannerWindow.destroy();
+    bannerWindow = null;
+  }
+}
+
 app.whenReady().then(() => {
   createWindow();
   createTray();
@@ -95,6 +150,8 @@ app.on("window-all-closed", () => {
   // Ne quitte jamais tout seul : c'est le menu "Quitter" de l'icône
   // système qui décide (agent conçu pour tourner en arrière-plan).
 });
+
+app.on("before-quit", destroySessionBanner);
 
 // --- Pont IPC exposé au renderer (worker.js) via preload.js ---
 
@@ -118,6 +175,12 @@ ipcMain.handle("screen:get-source", async () => {
 ipcMain.on("tray:set-status", (event, label) => {
   if (tray) tray.setToolTip(`RemoteOps — ${label}`);
 });
+
+ipcMain.on("session:started", (event, deviceLabel) => {
+  createSessionBanner(deviceLabel);
+  if (mainWindow) mainWindow.show(); // visible aussi, pas seulement le bandeau
+});
+ipcMain.on("session:ended", () => destroySessionBanner());
 
 // --- Injection des événements d'entrée reçus du contrôleur distant ---
 // Les coordonnées reçues sont normalisées (0..1) ; on les remet à

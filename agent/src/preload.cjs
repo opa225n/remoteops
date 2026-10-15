@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld("remoteops", {
   sendInput: (payload) => ipcRenderer.send("input:event", payload),
   releaseAllInputs: () => ipcRenderer.send("input:release-all"),
   setTrayStatus: (label) => ipcRenderer.send("tray:set-status", label),
+  notifySessionStarted: (deviceLabel) => ipcRenderer.send("session:started", deviceLabel),
+  notifySessionEnded: () => ipcRenderer.send("session:ended"),
 });

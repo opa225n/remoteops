@@ -37,8 +37,19 @@ le menu de l'icône système pour **Quitter**.
   prévoir `electron-builder` ou `electron-forge`.
 - Démarrage automatique à l'ouverture de session.
 - Choix du moniteur quand le poste en a plusieurs.
-- Icône réelle (actuellement une icône vide, `nativeImage.createEmpty()`
-  dans `src/main.js`).
+- Icône dédiée illustrée (un simple rond coloré est généré par défaut,
+  voir `src/trayIcon.js` — non vide, mais pas une vraie icône de marque).
+
+## Bandeau de session
+
+Pendant toute session de contrôle à distance, une fenêtre sans bordure,
+toujours au-dessus (y compris en plein écran) et non fermable par la
+personne devant le poste s'affiche en haut de l'écran
+(`src/renderer/banner.html`). C'est volontaire : il ne doit pas être
+possible de masquer discrètement qu'une session est en cours pendant
+qu'elle a lieu. Il disparaît automatiquement à la fin de la session, y
+compris si celle-ci échoue en cours de démarrage (voir le bloc
+`try/catch` dans `doStartSession`, `src/renderer/worker.js`).
 
 ## Tester une modification
 

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>RemoteOps — session en cours</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Fira+Sans:wght@600;700&display=swap");
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #ef4444;
+        color: #ffffff;
+        font-family: "Fira Sans", system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        -webkit-app-region: drag; /* permet de la déplacer au besoin, ne gêne pas la capture */
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 34px;
+      }
+      svg {
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="12" rx="2" />
+        <path d="M8 20h8M12 16v4" />
+      </svg>
+      <span id="label">Session de maintenance à distance en cours</span>
+    </div>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const name = params.get("device");
+      if (name) {
+        document.getElementById("label").textContent = `Session de maintenance à distance en cours — ${name}`;
+      }
+    </script>
+  </body>
+</html>

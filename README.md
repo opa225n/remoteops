@@ -108,9 +108,10 @@ régulier sur un vrai parc, prévoyez de traiter les points suivants :
   pour tout accès au tableau de bord au-delà de `localhost`. WebRTC exige
   une origine sécurisée (HTTPS) pour fonctionner dans un navigateur, sauf
   en local.
-- **Icône de l'agent** : `nativeImage.createEmpty()` par défaut dans
-  `agent/src/main.js` — remplacez par un vrai fichier `.png`/`.ico` avant
-  diffusion interne.
+- **Icône de l'agent** : un rond plein généré en mémoire par défaut
+  (`agent/src/trayIcon.js`), pour ne jamais être invisible/introuvable.
+  Une illustration dédiée (`.png`/`.ico`) reste préférable avant diffusion
+  interne plus large.
 - **Tests** : validé par un test de bout en bout du serveur (authentification,
   enrôlement, relais WebSocket) dans cet environnement. L'agent Electron
   (capture d'écran, injection d'entrées) n'a **pas** pu être testé ici,
@@ -125,6 +126,18 @@ régulier sur un vrai parc, prévoyez de traiter les points suivants :
 - Le serveur de signalisation ne relaie que ce qui est nécessaire à la
   négociation WebRTC : il ne voit jamais le flux vidéo ni les entrées une
   fois la session établie.
+- Création du tout premier compte protégée par un jeton d'installation
+  affiché dans la console du serveur (voir « Démarrage rapide »).
+- `server/data/db.json` (jetons d'agent, empreintes de mot de passe) et
+  `device-config.json` côté agent (jeton de ce poste) sont écrits avec des
+  permissions restreintes (`0o600`, propriétaire seul — sans effet réel
+  sous Windows).
+- Pendant une session de contrôle à distance, un bandeau rouge s'affiche
+  en haut de l'écran du poste dépanné, par-dessus toute autre fenêtre
+  (y compris en plein écran), et reste visible tant que la session dure :
+  la personne devant le poste sait toujours qu'elle est observée/contrôlée,
+  même si la fenêtre de statut de l'agent est réduite dans la zone de
+  notification.
 - **À votre charge** : HTTPS en production, mise à jour des dépendances,
   politique de mots de passe plus stricte si besoin, journalisation/alerte
   si vous voulez un historique d'audit des connexions (non inclus).

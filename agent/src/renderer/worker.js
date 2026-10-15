@@ -146,47 +146,65 @@ function connectSignaling(config) {
 
 async function doStartSession(sessionId, config) {
   setStatus("session", "Session en cours");
-  const { sourceId, screenWidth, screenHeight } = await window.remoteops.getScreenSource();
+  // Bandeau visible à l'écran tant que la session dure : seule garantie
+  // pour la personne devant le poste qu'un contrôle à distance est en
+  // cours, même si cette fenêtre de statut est réduite dans la zone de
+  // notification. Posé avant toute étape pouvant échouer (capture d'écran,
+  // négociation WebRTC) : le bloc catch ci-dessous le retire si l'une
+  // d'elles échoue, pour ne jamais le laisser affiché à tort.
+  window.remoteops.notifySessionStarted(config.name);
 
-  localStream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      mandatory: {
-        chromeMediaSource: "desktop",
-        chromeMediaSourceId: sourceId,
-        maxWidth: screenWidth,
-        maxHeight: screenHeight,
-        maxFrameRate: 20,
+  try {
+    const { sourceId, screenWidth, screenHeight } = await window.remoteops.getScreenSource();
+
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        mandatory: {
+          chromeMediaSource: "desktop",
+          chromeMediaSourceId: sourceId,
+          maxWidth: screenWidth,
+          maxHeight: screenHeight,
+          maxFrameRate: 20,
+        },
       },
-    },
-  });
+    });
 
-  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-  localStream.getVideoTracks().forEach((track) => pc.addTrack(track, localStream));
+    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    localStream.getVideoTracks().forEach((track) => pc.addTrack(track, localStream));
 
-  dataChannel = pc.createDataChannel("input");
-  dataChannel.onmessage = (event) => {
-    try {
-      window.remoteops.sendInput(JSON.parse(event.data));
-    } catch {
-      /* message malformé : ignoré */
+    dataChannel = pc.createDataChannel("input");
+    dataChannel.onmessage = (event) => {
+      try {
+        window.remoteops.sendInput(JSON.parse(event.data));
+      } catch {
+        /* message malformé : ignoré */
+      }
+    };
+    dataChannel.onclose = () => window.remoteops.releaseAllInputs();
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        ws.send(JSON.stringify({ type: "ice", sessionId, candidate: event.candidate }));
+      }
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: "offer", sessionId, sdp: offer.sdp }));
+    log("Offre WebRTC envoyée, en attente de la réponse du contrôleur.");
+  } catch (err) {
+    log(`Échec du démarrage de la session : ${err.message}`);
+    cleanupSession();
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "end-session", sessionId }));
     }
-  };
-  dataChannel.onclose = () => window.remoteops.releaseAllInputs();
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      ws.send(JSON.stringify({ type: "ice", sessionId, candidate: event.candidate }));
-    }
-  };
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  ws.send(JSON.stringify({ type: "offer", sessionId, sdp: offer.sdp }));
-  log("Offre WebRTC envoyée, en attente de la réponse du contrôleur.");
+    setStatus("online", "En ligne");
+  }
 }
 
 function cleanupSession() {
+  window.remoteops.notifySessionEnded();
   window.remoteops.releaseAllInputs();
   if (dataChannel) {
     dataChannel.close();
