@@ -192,6 +192,9 @@ select {
   gap: var(--space-1);
   margin-bottom: var(--space-4);
 }
+.field[hidden] {
+  display: none;
+}
 
 .field label {
   font-size: 0.875rem;
@@ -321,6 +324,14 @@ select {
   justify-content: center;
   padding: var(--space-4);
   z-index: 50;
+}
+
+/* Sans cette règle, l'attribut HTML `hidden` (posé par le script au clic
+   sur « Fermer ») n'a aucun effet : une règle d'auteur qui fixe `display`
+   sur le même élément l'emporte toujours sur la règle `[hidden]{display:
+   none}` du navigateur, même sans qu'aucune erreur ne s'affiche. */
+.modal-overlay[hidden] {
+  display: none;
 }
 
 .modal {
