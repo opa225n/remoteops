@@ -1,0 +1,21 @@
+{
+  "name": "remoteops-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent RemoteOps à installer sur chaque poste à dépanner à distance.",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6"
+  },
+  "devDependencies": {
+    "electron": "^44.7.2"
+  },
+  "comment": "Pas de packaging (electron-builder/forge) dans cette première version : lancement via `npm start` sur chaque poste. Voir agent/README.md."
+}

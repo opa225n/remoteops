@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session — RemoteOps</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div class="session-page">
+      <header class="session-bar">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <a href="dashboard.html" class="icon-btn" aria-label="Retour aux postes" id="back-link"></a>
+          <strong id="device-name">Connexion…</strong>
+          <span class="status" id="conn-status"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span class="field-hint" id="input-hint">Cliquez sur l'écran pour activer clavier/souris</span>
+          <button class="btn btn-danger" id="end-btn" type="button">Terminer la session</button>
+        </div>
+      </header>
+
+      <div class="session-viewport" id="viewport" tabindex="0">
+        <div class="session-placeholder" id="placeholder">
+          <p id="placeholder-text">Établissement de la connexion…</p>
+        </div>
+        <video id="remote-video" autoplay playsinline hidden></video>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <script type="module" src="js/session.js"></script>
+  </body>
+</html>

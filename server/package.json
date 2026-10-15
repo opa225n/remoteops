@@ -1,0 +1,22 @@
+{
+  "name": "remoteops-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Serveur de signalisation et tableau de bord pour RemoteOps (maintenance à distance interne).",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie": "^0.6.0",
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  },
+  "comment_deps": "cookie: analyse manuelle de l'en-tête Cookie (route HTTP et requête de mise à niveau WebSocket) ; pas de cookie-parser, inutile ici."
+}

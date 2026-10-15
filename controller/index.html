@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>RemoteOps</title>
+  </head>
+  <body>
+    <script type="module">
+      import { api } from "./js/api.js";
+      api
+        .me()
+        .then(() => (window.location.href = "dashboard.html"))
+        .catch(() => (window.location.href = "login.html"));
+    </script>
+  </body>
+</html>

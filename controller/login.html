@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connexion — RemoteOps</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <main class="auth-page">
+      <section class="card auth-card">
+        <h1 id="title">Connexion</h1>
+        <p class="auth-card__subtitle" id="subtitle">Tableau de bord interne de maintenance à distance.</p>
+
+        <form id="auth-form" novalidate>
+          <div class="field">
+            <label for="username">Identifiant</label>
+            <input id="username" name="username" type="text" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="password">Mot de passe</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+            <span class="field-hint" id="password-hint"></span>
+          </div>
+          <p class="field-error" id="error" role="alert" hidden></p>
+          <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%">Se connecter</button>
+        </form>
+      </section>
+    </main>
+
+    <script type="module">
+      import { api, applyStoredTheme } from "./js/api.js";
+      applyStoredTheme();
+
+      const form = document.getElementById("auth-form");
+      const errorEl = document.getElementById("error");
+      const submitBtn = document.getElementById("submit-btn");
+      const title = document.getElementById("title");
+      const subtitle = document.getElementById("subtitle");
+      const hint = document.getElementById("password-hint");
+
+      let mode = "login"; // ou "setup" si aucun compte n'existe encore
+
+      (async () => {
+        try {
+          const me = await api.me();
+          if (me) window.location.href = "dashboard.html";
+        } catch {
+          // pas connecté : on reste sur cette page
+        }
+        try {
+          const status = await api.setupStatus();
+          if (status.needsSetup) {
+            mode = "setup";
+            title.textContent = "Créer le premier compte";
+            subtitle.textContent = "Aucun administrateur n'est encore configuré sur ce serveur.";
+            submitBtn.textContent = "Créer le compte";
+            hint.textContent = "10 caractères minimum.";
+          }
+        } catch {
+          /* le serveur répondra à la soumission de toute façon */
+        }
+      })();
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errorEl.hidden = true;
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        submitBtn.disabled = true;
+        try {
+          if (mode === "setup") {
+            await api.setup(username, password);
+          } else {
+            await api.login(username, password);
+          }
+          window.location.href = "dashboard.html";
+        } catch (err) {
+          const messages = {
+            identifiants_invalides: "Identifiant ou mot de passe incorrect.",
+            trop_de_tentatives: "Trop de tentatives : réessayez dans une minute.",
+            deja_configure: "Un compte existe déjà : rechargez la page.",
+          };
+          errorEl.textContent = messages[err.code] || "Une erreur est survenue. Réessayez.";
+          errorEl.hidden = false;
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

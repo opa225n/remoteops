@@ -1,0 +1,103 @@
+/* Jetons de conception — issus de design-system/remoteops/MASTER.md
+   (généré par la recherche ui-ux-pro-max : Minimalisme / Swiss Style,
+   dense, pour tableau de bord technique interne). Thème sombre par
+   défaut (salle serveur / usage prolongé), variante clair disponible. */
+
+:root {
+  --font-ui: "Fira Sans", system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --color-accent: #22c55e;
+  --color-on-accent: #0f172a;
+  --color-destructive: #ef4444;
+  --color-on-destructive: #ffffff;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.2);
+  --transition-fast: 150ms ease;
+  --transition-std: 220ms ease;
+}
+
+/* Thème sombre (par défaut) */
+:root,
+:root[data-theme="dark"] {
+  --color-background: #0f172a;
+  --color-foreground: #f8fafc;
+  --color-card: #1b2336;
+  --color-card-foreground: #f8fafc;
+  --color-muted: #272f42;
+  --color-muted-foreground: #94a3b8;
+  --color-border: #475569;
+  --color-primary: #1e293b;
+  --color-on-primary: #f8fafc;
+  --color-secondary: #334155;
+  --color-on-secondary: #f8fafc;
+  --color-ring: #ffffff;
+
+  --color-status-online-text: #4ade80;
+  --color-status-online-bg: rgb(34 197 94 / 0.15);
+  --color-status-session-text: #38bdf8;
+  --color-status-session-bg: rgb(56 189 248 / 0.15);
+  --color-status-offline-text: #94a3b8;
+  --color-status-offline-bg: rgb(148 163 184 / 0.12);
+  --color-status-error-text: #f87171;
+  --color-status-error-bg: rgb(239 68 68 / 0.15);
+}
+
+/* Thème clair */
+:root[data-theme="light"] {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #e2e8f0;
+  --color-muted-foreground: #475569;
+  --color-border: #cbd5e1;
+  --color-primary: #1e293b;
+  --color-on-primary: #f8fafc;
+  --color-secondary: #334155;
+  --color-on-secondary: #f8fafc;
+  --color-ring: #1e293b;
+
+  --color-status-online-text: #15803d;
+  --color-status-online-bg: rgb(34 197 94 / 0.12);
+  --color-status-session-text: #0369a1;
+  --color-status-session-bg: rgb(56 189 248 / 0.15);
+  --color-status-offline-text: #475569;
+  --color-status-offline-bg: rgb(100 116 139 / 0.12);
+  --color-status-error-text: #b91c1c;
+  --color-status-error-bg: rgb(239 68 68 / 0.1);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 10px rgb(0 0 0 / 0.06);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --color-background: #f8fafc;
+    --color-foreground: #0f172a;
+    --color-card: #ffffff;
+    --color-card-foreground: #0f172a;
+    --color-muted: #e2e8f0;
+    --color-muted-foreground: #475569;
+    --color-border: #cbd5e1;
+    --color-ring: #1e293b;
+    --color-status-online-text: #15803d;
+    --color-status-online-bg: rgb(34 197 94 / 0.12);
+    --color-status-session-text: #0369a1;
+    --color-status-session-bg: rgb(56 189 248 / 0.15);
+    --color-status-offline-text: #475569;
+    --color-status-offline-bg: rgb(100 116 139 / 0.12);
+    --color-status-error-text: #b91c1c;
+    --color-status-error-bg: rgb(239 68 68 / 0.1);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 10px rgb(0 0 0 / 0.06);
+  }
+}

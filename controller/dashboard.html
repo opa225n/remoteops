@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Postes — RemoteOps</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="topbar__brand">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+          RemoteOps
+        </div>
+        <div class="topbar__actions">
+          <span id="whoami" class="field-hint"></span>
+          <button class="icon-btn" id="theme-toggle" type="button" aria-label="Changer de thème (clair/sombre)"></button>
+          <button class="btn btn-ghost" id="logout-btn" type="button">Déconnexion</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap">
+          <h2 style="margin: 0">Postes du parc</h2>
+          <button class="btn btn-primary" id="add-device-btn" type="button"></button>
+        </div>
+
+        <div id="device-grid" class="device-grid" aria-live="polite"></div>
+        <p id="empty-state" class="empty-state" hidden>
+          Aucun poste enrôlé pour l'instant. Ajoutez-en un pour commencer.
+        </p>
+      </main>
+    </div>
+
+    <!-- Fenêtre modale : ajout d'un poste -->
+    <div class="modal-overlay" id="enroll-modal" hidden>
+      <div class="card modal" role="dialog" aria-modal="true" aria-labelledby="enroll-title">
+        <h3 id="enroll-title">Ajouter un poste</h3>
+        <p class="field-hint">
+          Sur le poste à surveiller, installez l'agent RemoteOps puis saisissez ce code
+          lorsqu'il vous le demande. Le code est valable 15 minutes et à usage unique.
+        </p>
+        <div class="field">
+          <label for="device-name">Nom du poste (optionnel)</label>
+          <input id="device-name" type="text" placeholder="ex. PC-Compta-03" />
+        </div>
+        <button class="btn btn-secondary" id="generate-code-btn" type="button" style="width: 100%">
+          Générer le code
+        </button>
+        <div id="code-result" hidden>
+          <div class="enroll-code mono" id="enroll-code-value"></div>
+          <p class="field-hint" id="code-expiry"></p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px">
+          <button class="btn btn-ghost" id="close-modal-btn" type="button">Fermer</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <script type="module" src="js/dashboard.js"></script>
+  </body>
+</html>
