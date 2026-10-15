@@ -83,13 +83,16 @@ function wireEnrollForm() {
 }
 
 function connectSignaling(config) {
-  const wsUrl = `${config.serverUrl.replace(/^http/, "ws")}/ws/agent?deviceId=${encodeURIComponent(config.deviceId)}&token=${encodeURIComponent(config.token)}`;
+  // Le jeton n'est pas mis dans l'URL de connexion (il finirait en clair
+  // dans les journaux d'accès d'un éventuel reverse proxy) : il est
+  // envoyé comme premier message, une fois la connexion établie.
+  const wsUrl = `${config.serverUrl.replace(/^http/, "ws")}/ws/agent`;
   setStatus("", "Connexion au serveur…");
   ws = new WebSocket(wsUrl);
 
   ws.addEventListener("open", () => {
-    setStatus("online", "En ligne");
-    log("Connecté au serveur de signalisation.");
+    log("Connecté, authentification…");
+    ws.send(JSON.stringify({ type: "auth", deviceId: config.deviceId, token: config.token }));
   });
 
   ws.addEventListener("close", () => {
@@ -105,6 +108,11 @@ function connectSignaling(config) {
 
     if (msg.type === "ping") {
       ws.send(JSON.stringify({ type: "pong" }));
+      return;
+    }
+    if (msg.type === "auth-ok") {
+      setStatus("online", "En ligne");
+      log("Authentifié auprès du serveur.");
       return;
     }
     if (msg.type === "incoming-session") {

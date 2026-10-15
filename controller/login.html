@@ -14,6 +14,11 @@
         <p class="auth-card__subtitle" id="subtitle">Tableau de bord interne de maintenance à distance.</p>
 
         <form id="auth-form" novalidate>
+          <div class="field" id="setup-token-field" hidden>
+            <label for="setup-token">Jeton d'installation</label>
+            <input id="setup-token" name="setup-token" type="text" autocomplete="off" />
+            <span class="field-hint">Affiché dans la console/les journaux du serveur au démarrage.</span>
+          </div>
           <div class="field">
             <label for="username">Identifiant</label>
             <input id="username" name="username" type="text" autocomplete="username" required />
@@ -57,6 +62,7 @@
             subtitle.textContent = "Aucun administrateur n'est encore configuré sur ce serveur.";
             submitBtn.textContent = "Créer le compte";
             hint.textContent = "10 caractères minimum.";
+            document.getElementById("setup-token-field").hidden = false;
           }
         } catch {
           /* le serveur répondra à la soumission de toute façon */
@@ -71,7 +77,8 @@
         submitBtn.disabled = true;
         try {
           if (mode === "setup") {
-            await api.setup(username, password);
+            const setupToken = document.getElementById("setup-token").value.trim();
+            await api.setup(username, password, setupToken);
           } else {
             await api.login(username, password);
           }
@@ -81,6 +88,7 @@
             identifiants_invalides: "Identifiant ou mot de passe incorrect.",
             trop_de_tentatives: "Trop de tentatives : réessayez dans une minute.",
             deja_configure: "Un compte existe déjà : rechargez la page.",
+            jeton_installation_invalide: "Jeton d'installation incorrect : regardez la console du serveur.",
           };
           errorEl.textContent = messages[err.code] || "Une erreur est survenue. Réessayez.";
           errorEl.hidden = false;

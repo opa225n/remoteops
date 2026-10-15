@@ -24,7 +24,7 @@ async function request(method, url, body) {
 
 export const api = {
   setupStatus: () => request("GET", "/api/setup-status"),
-  setup: (username, password) => request("POST", "/api/setup", { username, password }),
+  setup: (username, password, setupToken) => request("POST", "/api/setup", { username, password, setupToken }),
   login: (username, password) => request("POST", "/api/login", { username, password }),
   logout: () => request("POST", "/api/logout"),
   me: () => request("GET", "/api/me"),

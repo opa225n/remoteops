@@ -2,6 +2,7 @@
 
 const path = require("path");
 const http = require("http");
+const crypto = require("crypto");
 const express = require("express");
 
 const store = require("./store");
@@ -32,6 +33,24 @@ if (!process.env.SESSION_SECRET) {
 
 const app = express();
 app.use(express.json({ limit: "64kb" }));
+
+// --- Jeton d'installation (protège la création du tout premier compte) ---
+// Sans cela, le premier client réseau à atteindre /api/setup deviendrait
+// l'unique administrateur : n'importe qui sur le même réseau pourrait
+// prendre le compte avant l'opérateur légitime. Le jeton n'est jamais
+// exposé par l'API ; il faut le lire dans la console/les journaux du
+// serveur, qui sont supposés n'être accessibles qu'à l'opérateur.
+let setupToken = null;
+if (store.countUsers() === 0) {
+  setupToken = crypto.randomBytes(9).toString("base64url");
+}
+
+function setupTokenValid(provided) {
+  if (!setupToken || typeof provided !== "string") return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(setupToken);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 // --- Limiteur de débit minimal (mémoire locale, process unique) ---
 // Protège les routes sensibles (connexion, enrôlement) contre les essais
@@ -64,16 +83,20 @@ app.get("/api/setup-status", (req, res) => {
   res.json({ needsSetup: store.countUsers() === 0 });
 });
 
-app.post("/api/setup", async (req, res) => {
+app.post("/api/setup", loginLimiter, async (req, res) => {
   if (store.countUsers() > 0) {
     return res.status(409).json({ error: "deja_configure" });
   }
-  const { username, password } = req.body || {};
+  const { username, password, setupToken: provided } = req.body || {};
+  if (!setupTokenValid(provided)) {
+    return res.status(403).json({ error: "jeton_installation_invalide" });
+  }
   if (!username || !password || password.length < 10) {
     return res.status(400).json({ error: "identifiants_invalides", detail: "Mot de passe : 10 caractères minimum." });
   }
   const hash = await auth.hashPassword(password);
   const user = store.createUser(username, hash);
+  setupToken = null; // à usage unique : la création du compte le consomme
   auth.issueSessionCookie(res, user);
   res.json({ ok: true, username: user.username });
 });
@@ -136,7 +159,21 @@ app.get("/api/enroll-codes", auth.requireAuth, (req, res) => {
 
 // Appelée par l'agent lui-même (pas encore authentifié : c'est justement
 // le but du code d'enrôlement, à usage unique et de courte durée de vie).
-app.post("/api/agent/register", enrollLimiter, (req, res) => {
+// L'agent Electron appelle cette route depuis une page chargée en file://
+// (origine "null" pour le navigateur) : sans en-têtes CORS explicites,
+// Chromium bloque la lecture de la réponse même si la requête aboutit
+// bien côté serveur. Autorisé en large ("*") volontairement : la route
+// n'utilise aucun cookie/session (pas de risque de vol d'identifiants
+// via credentials), et son unique protection — le code à usage unique et
+// durée de vie courte — s'applique quelle que soit l'origine de l'appel.
+function allowCorsForEnrollment(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
+}
+app.options("/api/agent/register", allowCorsForEnrollment, (req, res) => res.sendStatus(204));
+app.post("/api/agent/register", allowCorsForEnrollment, enrollLimiter, (req, res) => {
   const { code, name } = req.body || {};
   if (!code) return res.status(400).json({ error: "code_requis" });
   const result = store.createDeviceFromEnrollCode(String(code).toUpperCase().trim(), name);
@@ -152,7 +189,9 @@ const signaling = attachSignaling(server);
 
 server.listen(PORT, () => {
   console.log(`RemoteOps : serveur prêt sur http://localhost:${PORT}`);
-  if (store.countUsers() === 0) {
+  if (setupToken) {
     console.log("Aucun compte admin : ouvrez le tableau de bord pour créer le premier compte.");
+    console.log(`Jeton d'installation (à coller dans le formulaire) : ${setupToken}`);
+    console.log("Gardez ce jeton pour vous : quiconque le connaît peut créer le compte administrateur.");
   }
 });

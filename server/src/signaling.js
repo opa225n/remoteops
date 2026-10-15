@@ -45,13 +45,22 @@ function attachSignaling(httpServer) {
   }
 
   // --- Canal des agents (postes distants) ---
-  wssAgents.on("connection", (ws, req, device) => {
-    onlineAgents.set(device.id, { ws });
-    store.touchDeviceLastSeen(device.id);
+  // L'identifiant et le jeton de l'agent ne sont PAS passés dans l'URL de
+  // connexion (une URL de requête HTTP/WebSocket finit couramment dans les
+  // journaux d'accès d'un reverse proxy en clair) : la connexion est
+  // acceptée sans condition, puis l'agent doit s'authentifier par son
+  // premier message ({type:"auth", deviceId, token}). Un délai court
+  // referme toute connexion qui ne s'authentifie pas, pour éviter qu'on
+  // puisse ouvrir un grand nombre de sockets inactives.
+  const AUTH_TIMEOUT_MS = 5000;
 
-    const heartbeat = setInterval(() => {
-      if (ws.readyState === 1) ws.send(JSON.stringify({ type: "ping" }));
-    }, 25000);
+  wssAgents.on("connection", (ws) => {
+    let device = null;
+    let heartbeat = null;
+
+    const authTimer = setTimeout(() => {
+      if (!device) ws.close(4001, "authentification manquante");
+    }, AUTH_TIMEOUT_MS);
 
     ws.on("message", (raw) => {
       let msg;
@@ -60,6 +69,25 @@ function attachSignaling(httpServer) {
       } catch {
         return;
       }
+
+      if (!device) {
+        if (msg.type !== "auth") return; // tout le reste est ignoré tant que non authentifié
+        const authenticated = verifyAgentToken(msg.deviceId, msg.token);
+        if (!authenticated) {
+          ws.close(4001, "jeton invalide");
+          return;
+        }
+        device = authenticated;
+        clearTimeout(authTimer);
+        onlineAgents.set(device.id, { ws });
+        store.touchDeviceLastSeen(device.id);
+        ws.send(JSON.stringify({ type: "auth-ok" }));
+        heartbeat = setInterval(() => {
+          if (ws.readyState === 1) ws.send(JSON.stringify({ type: "ping" }));
+        }, 25000);
+        return;
+      }
+
       if (msg.type === "pong") return;
       if (!msg.sessionId) return;
       const session = sessions.get(msg.sessionId);
@@ -75,7 +103,9 @@ function attachSignaling(httpServer) {
     });
 
     ws.on("close", () => {
+      clearTimeout(authTimer);
       clearInterval(heartbeat);
+      if (!device) return;
       onlineAgents.delete(device.id);
       const sessionId = deviceActiveSession.get(device.id);
       if (sessionId) endSession(sessionId, "poste_deconnecte");
@@ -131,15 +161,10 @@ function attachSignaling(httpServer) {
     const url = new URL(req.url, "http://localhost");
 
     if (url.pathname === "/ws/agent") {
-      const deviceId = url.searchParams.get("deviceId");
-      const token = url.searchParams.get("token");
-      const device = verifyAgentToken(deviceId, token);
-      if (!device) {
-        socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-        socket.destroy();
-        return;
-      }
-      wssAgents.handleUpgrade(req, socket, head, (ws) => wssAgents.emit("connection", ws, req, device));
+      // Pas de vérification ici : l'identité de l'agent n'est plus portée
+      // par l'URL (voir le commentaire sur AUTH_TIMEOUT_MS plus haut) mais
+      // par son premier message, une fois la connexion acceptée.
+      wssAgents.handleUpgrade(req, socket, head, (ws) => wssAgents.emit("connection", ws, req));
       return;
     }
 

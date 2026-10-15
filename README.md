@@ -51,7 +51,10 @@ npm start
 ```
 
 Ouvrez `http://localhost:3000` (ou le port choisi) : la première visite
-propose de créer le compte administrateur.
+propose de créer le compte administrateur. La console où tourne `npm
+start` affiche alors un **jeton d'installation** à copier dans le
+formulaire — c'est ce qui empêche quelqu'un d'autre sur le réseau de
+créer ce premier compte avant vous.
 
 ### 2. Ajouter un poste
 
